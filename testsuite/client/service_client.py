@@ -11,10 +11,7 @@ class ServiceClient:
     def __init__(self):
         env_vars = os.environ.keys()
         assert SERVICE_URL in env_vars
-        assert SERVICE_PORT in env_vars
-        self.service_url = (
-            f'{os.environ.get(SERVICE_URL)}:{os.environ.get(SERVICE_PORT)}'
-        )
+        self.service_url = os.environ.get(SERVICE_URL)
 
     def get(self, path, headers=None, body_dict=None):
         response = requests.get(

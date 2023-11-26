@@ -2,10 +2,14 @@ version: "3.6"
 
 services:
     fastapi_service:
-        build: src/.
-        volumes:
-            - ./src:/usr/src/service
-        command: uvicorn main:app --host 0.0.0.0 --port=${SERVICE_PORT} --log-level critical
+        build:
+            context: src/.
+            args:
+                - PG_DB_ARG=${PG_DB}
+                - PG_HOST_ARG=${PG_HOST}
+                - PG_PORT_ARG=${PG_PORT}
+                - PG_USER_ARG=${PG_USER}
+                - PG_PASS_ARG=${PG_PASS}
         hostname: fastapi_service
         container_name: fastapi_service
         ports:
@@ -13,18 +17,38 @@ services:
         healthcheck:
             test: ["CMD-SHELL", "curl -v http://fastapi_service:8000/ping || exit 1"]
             timeout: 15s
-            interval: 5s
+            interval: 2s
             retries: 400
-        logging:
-            driver: none
+        depends_on:
+            postgres:
+                condition: service_healthy
+
+    postgres:
+        build: postgres/.
+        container_name: postgres_db
+        volumes:
+            - ./postgres:/postgres/schema
+        environment:
+            POSTGRES_DB: ${PG_DB}
+            POSTGRES_USER: ${PG_USER}
+            POSTGRES_PASSWORD: ${PG_PASS}
+            POSTGRES_PORT: ${PG_PORT}
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U admin -d service_database"]
+            interval: 2s
+            timeout: 15s
+            retries: 10
 
     testsuite:
-        build: testsuite/.
+        build:
+            context: testsuite/.
+            args:
+                - SERVICE_URL_ARG=${SERVICE_URL}
         volumes:
             - ./testsuite:/usr/src/testsuite
         command: pytest . -vvv
         depends_on:
             fastapi_service:
                 condition: service_healthy
-        env_file:
-            - .env
+            postgres:
+                condition: service_healthy

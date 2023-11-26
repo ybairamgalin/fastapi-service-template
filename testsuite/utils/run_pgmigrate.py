@@ -4,7 +4,6 @@ import subprocess
 
 
 def run_pgmigrate(pg_credentials):
-    result = subprocess.run(['ls', '-al'], capture_output=True)
     result = subprocess.run(
         [
             "pgmigrate",
